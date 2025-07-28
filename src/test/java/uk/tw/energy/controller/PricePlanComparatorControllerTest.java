@@ -37,7 +37,7 @@ public class PricePlanComparatorControllerTest {
         PricePlan pricePlan2 = new PricePlan(BEST_PLAN_ID, null, BigDecimal.ONE, null);
         PricePlan pricePlan3 = new PricePlan(SECOND_BEST_PLAN_ID, null, BigDecimal.valueOf(2), null);
         List<PricePlan> pricePlans = List.of(pricePlan1, pricePlan2, pricePlan3);
-        PricePlanService pricePlanService = new PricePlanService(pricePlans, meterReadingService);
+        PricePlanService pricePlanService = new PricePlanService(pricePlans, meterReadingService, accountService);
 
         accountService = new AccountService(Map.of(SMART_METER_ID, WORST_PLAN_ID));
 
