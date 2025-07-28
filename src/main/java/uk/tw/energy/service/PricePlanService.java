@@ -3,12 +3,15 @@ package uk.tw.energy.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
+
 import uk.tw.energy.domain.ElectricityReading;
 import uk.tw.energy.domain.PricePlan;
 
@@ -35,12 +38,38 @@ public class PricePlanService {
                 .collect(Collectors.toMap(PricePlan::getPlanName, t -> calculateCost(electricityReadings.get(), t))));
     }
 
+    public BigDecimal calculateLastWeekCost(String smartMeterId) {
+        Optional<List<ElectricityReading>> electricityReadings = meterReadingService.getReadings(smartMeterId);
+
+        if (!electricityReadings.isPresent()) {
+            return BigDecimal.ZERO;
+        }
+
+        return calculateLastWeekCost(electricityReadings.get());
+    }
+
     private BigDecimal calculateCost(List<ElectricityReading> electricityReadings, PricePlan pricePlan) {
         final BigDecimal averageReadingInKw = calculateAverageReading(electricityReadings);
         final BigDecimal usageTimeInHours = calculateUsageTimeInHours(electricityReadings);
         final BigDecimal energyConsumedInKwH = averageReadingInKw.divide(usageTimeInHours, RoundingMode.HALF_UP);
         final BigDecimal cost = energyConsumedInKwH.multiply(pricePlan.getUnitRate());
         return cost;
+    }
+
+    public BigDecimal calculateLastWeekCost(List<ElectricityReading> electricityReadings) {
+        if (electricityReadings == null || electricityReadings.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        if (electricityReadings.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal totalCost = electricityReadings.stream()
+                .filter(reading -> reading.time().isAfter(Instant.now().minus(Duration.ofDays(7))))
+                .map(ElectricityReading::reading)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return totalCost.divide(BigDecimal.valueOf(electricityReadings.size()), RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculateAverageReading(List<ElectricityReading> electricityReadings) {
